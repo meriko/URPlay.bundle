@@ -7,22 +7,45 @@ RE_VIDEO_DATA = Regex('urPlayer.init\((.*)\);')
 def MetadataObjectForURL(url):
     element = HTML.ElementFromURL(url)
     
-    title   = unicode(element.xpath("//meta[@property='og:title']/@content")[0])
-    summary = unicode(element.xpath("//meta[@property='og:description']/@content")[0])
+    try:
+        title = unicode(element.xpath("//*[@class='tv']//h2/text()")[0]).strip()
+    except:
+        title = unicode(element.xpath("//meta[@property='og:title']/@content")[0]).strip()
+        
+    summary = unicode(element.xpath("//meta[@property='og:description']/@content")[0]).strip()
     thumb   = element.xpath("//meta[@property='og:image']/@content")[0]
     
-    return VideoClipObject(
+    try:
+        show = unicode(element.xpath("//*[@class='tv']//h1/text()")[0]).strip()
+    except:
+        show = None
+        
+    try:
+        durationString = element.xpath("//*[@id='date-time']//dd/text()")[0]
+        duration       = (int(durationString.split(':')[0]) * 60 + int(durationString.split(':')[1])) * 1000
+    except:
+        duration = None
+    
+    try:
+        originally_available_at = Datetime.ParseDate(element.xpath("//time/@datetime")[0].split('T')[0]).date()
+    except:
+        originally_available_at = None
+    
+    return EpisodeObject(
         url = url,
         title = title,
         summary = summary,
-        thumb = thumb
+        thumb = thumb,
+        show = show,
+        duration = duration,
+        originally_available_at = originally_available_at
     )
 
 ####################################################################################################
 def MediaObjectsForURL(url):
     return [
         MediaObject(
-            video_resolution        = 720, 
+            video_resolution        = 'sd', 
             audio_channels          = 2,
             optimized_for_streaming = True,
             parts                   = [
