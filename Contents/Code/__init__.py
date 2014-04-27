@@ -122,17 +122,19 @@ def Videos(url, title, page = 1):
     for item in element.xpath(".//section[@class='tv']"):
         try:
             link  = item.xpath(".//a/@href")[0]
-            title = unicode(item.xpath(".//h1/text()")[0])
+            title = unicode(item.xpath(".//h1/text()")[0]).strip()
         except:
             continue
 
         try:
-            show = unicode(item.xpath(".//h2/text()")[0])
+            show = unicode(item.xpath(".//h2/text()")[0]).strip()
+            if show == title:
+                show = None
         except:
             show = None
 
         try:
-            summary = unicode(item.xpath(".//p/text()")[0])
+            summary = unicode(item.xpath(".//p/text()")[0]).strip()
         except:
             summary = None
             
