@@ -125,7 +125,12 @@ def Videos(url, title, page = 1):
             title = unicode(item.xpath(".//h1/text()")[0])
         except:
             continue
-        
+
+        try:
+            show = unicode(item.xpath(".//h2/text()")[0])
+        except:
+            show = None
+
         try:
             summary = unicode(item.xpath(".//p/text()")[0])
         except:
@@ -148,9 +153,10 @@ def Videos(url, title, page = 1):
             originally_available_at = None
         
         oc.add(
-            VideoClipObject(
+            EpisodeObject(
                 url = BASE_URL + link,
                 title = title,
+                show = show,
                 summary = summary,
                 thumb = thumb,
                 duration = duration,
