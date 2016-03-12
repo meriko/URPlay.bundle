@@ -5,6 +5,9 @@ ART  = R('art-default.jpg')
 ICON = R('icon-default.png')
 
 BASE_URL = 'http://www.urplay.se'
+MOST_VIEWED_URL = BASE_URL + '/sok?product_type=program&query=&type=default&view=most_viewed'
+LATEST_URL = BASE_URL + '/sok?product_type=program&query=&type=default&view=latest'
+LAST_CHANCE_URL = BASE_URL + '/sok?product_type=program&query=&type=default&view=last_chance'
 
 HTTP_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_5) AppleWebKit/536.26.17 (KHTML, like Gecko) Version/6.0.2 Safari/536.26.17"
 
@@ -24,42 +27,46 @@ def Start():
 @handler(PREFIX, TITLE, art = ART, thumb = ICON)
 def MainMenu():
     oc = ObjectContainer()
+
+    title = unicode('Senaste')
+    oc.add(
+        DirectoryObject(
+            key = Callback(Episodes, title=title, url=LATEST_URL, thumb=ICON, type='products-search-result'),
+            title = title
+        )
+    )   
     
-    element = HTML.ElementFromURL(BASE_URL)
+    title = unicode('Populärast just nu')
+    oc.add(
+        DirectoryObject(
+            key = Callback(Episodes, title=title, url=MOST_VIEWED_URL, thumb=ICON, type='products-search-result'),
+            title = title
+        )
+    )
     
-    for item in element.xpath("//ul//li"):
-        link = item.xpath(".//a/@href")[0]
-        
-        if link == '/':
-            continue
-        
-        title = unicode(item.xpath(".//a/text()")[0]) 
-        
-        if link == '/A-O':
-            oc.add(
-                DirectoryObject(
-                    key =
-                        Callback(
-                            AllPrograms,
-                            url = BASE_URL + link,
-                            title = title
-                        ),
-                    title = title
-                )
-            )
-            break # last
-        else:
-            oc.add(
-                DirectoryObject(
-                    key = 
-                        Callback(
-                            Videos,
-                            url = BASE_URL + link,
-                            title = title
-                        ),
-                    title = title
-                )
-            )
+    title = unicode('Sista chansen')
+    oc.add(
+        DirectoryObject(
+            key = Callback(Episodes, title=title, url=LAST_CHANCE_URL, thumb=ICON, type='products-search-result'),
+            title = title
+        )
+    )
+    
+    title = unicode('Kategorier')
+    oc.add(
+        DirectoryObject(
+            key = Callback(Categories, title = title),
+            title = title
+        )
+    )
+    
+    title = unicode('Alla Program')
+    oc.add(
+        DirectoryObject(
+            key = Callback(AllProgramsByLetter, title = title),
+            title = title
+        )
+    )
     
     title = unicode("Sök")
     oc.add(
@@ -74,113 +81,113 @@ def MainMenu():
     return oc
 
 ####################################################################################################
-@route(PREFIX + '/AllPrograms')
-def AllPrograms(url, title):
+@route(PREFIX + '/Categories')
+def Categories(title):
     oc = ObjectContainer(title2 = unicode(title))
     
-    element = HTML.ElementFromURL(url)
+    element = HTML.ElementFromURL(BASE_URL)
     
-    for item in element.xpath("//*[@id='alphabet']//a"):
-        try:
-            type = item.xpath(".//span/@class")[0]
-        except:
-            continue
-        
-        if type != 'product-type tv':
-            continue
-            
-        title = item.xpath("./text()")[0].strip()
-        link  = item.xpath("./@href")[0]
+    for item in element.xpath("//*[@id='categories']/a"):
+        title = unicode(item.xpath(".//span/text()")[0])
+        url = BASE_URL + item.xpath("./@href")[0]
+        thumb = BASE_URL + item.xpath(".//img/@data-src")[0]
         
         oc.add(
             DirectoryObject(
-                key = 
-                    Callback(
-                        Videos,
-                        url = BASE_URL + link,
-                        title = title
-                    ),
-                title = title
+                key = Callback(Episodes, title=title, url=url, thumb=thumb, type='products-search-result'),
+                title = title,
+                thumb = thumb
             )
         )
         
     return oc
     
+def Category(title, url, thumb):
+    pass
+
 ####################################################################################################
-@route(PREFIX + '/Videos', page = int)
-def Videos(url, title, page = 1):
+@route(PREFIX + '/AllPrograms')
+def AllProgramsByLetter(title):
     oc = ObjectContainer(title2 = unicode(title))
     
-    requestURL = url
-    if '?' in requestURL:
-        requestURL = requestURL + '&page=' + str(page)
-    else:
-        requestURL = requestURL + '?page=' + str(page)
-        
-    element = HTML.ElementFromURL(requestURL)
+    element = HTML.ElementFromURL(BASE_URL + '/sok?product_type=series&rows=999&start=0')
     
-    for item in element.xpath(".//section[@class='tv']"):
+    for program in element.xpath("//*[@class='series']/a"):
+        url = BASE_URL + program.xpath("./@href")[0]
+        title = unicode(program.xpath(".//h3/text()")[0])
+        
         try:
-            link  = item.xpath(".//a/@href")[0]
-            title = unicode(item.xpath(".//h1/text()")[0]).strip()
+            thumb = program.xpath(".//img/@data-src")[0]
         except:
-            continue
-
+            thumb = None
+        
         try:
-            show = unicode(item.xpath(".//h2/text()")[0]).strip()
-            if show == title:
-                show = None
-        except:
-            show = None
-
-        try:
-            summary = unicode(item.xpath(".//p/text()")[0]).strip()
+            summary = program.xpath(".//*[@class='description']/text()")[0]
         except:
             summary = None
-            
-        try:
-            thumb = item.xpath(".//img/@src")[0]
-        except:
-            thumb = ICON
         
         try:
-            durationString = item.xpath(".//dd/text()")[0]
-            duration       = (int(durationString.split(':')[0]) * 60 + int(durationString.split(':')[1])) * 1000
+            episode_count = int(''.join(program.xpath(".//*[@class='counter']//text()")).strip())
         except:
-            duration = None
-        
-        try:
-            originally_available_at = Datetime.ParseDate(item.xpath(".//time/@datetime")[0].split('T')[0]).date()
-        except:
-            originally_available_at = None
+            episode_count = None
         
         oc.add(
-            EpisodeObject(
-                url = BASE_URL + link,
+            TVShowObject(
+                key = Callback(Episodes, url = url, title = title, thumb = thumb),
+                rating_key = url,
                 title = title,
-                show = show,
-                summary = summary,
                 thumb = thumb,
-                duration = duration,
-                originally_available_at = originally_available_at
+                summary = summary,
+                episode_count = episode_count
+            )
+        )
+    
+    return oc
+
+####################################################################################################
+@route(PREFIX + '/Episodes')
+def Episodes(url, title, thumb, type='episodes'):
+
+    show = unicode(title)
+    art = thumb
+    oc = ObjectContainer(title2 = show)
+    element = HTML.ElementFromURL(url)
+    
+    for episode in element.xpath("//*[@id='%s']//li" % type):
+        episode_url = BASE_URL + episode.xpath(".//a/@href")[0]
+        episode_title = unicode(episode.xpath(".//h3/text()")[0])
+        
+        try:
+            episode_thumb = episode.xpath(".//img/@data-src")[0]
+        except:
+            episode_thumb = None
+        
+        try:
+            episode_summary = episode.xpath(".//*[@class='description']/text()")[0]
+        except:
+            episode_summary = None
+            
+        oc.add(
+            VideoClipObject(
+                url = episode_url,
+                title = episode_title,
+                thumb = episode_thumb,
+                summary = episode_summary,
+                art = art
             )
         )
         
-    for item in element.xpath("//*[@class='pagination']//a/text()"):
-        if item == '>':
-            oc.add(
-                NextPageObject(
-                    key =
-                        Callback(
-                            Videos,
-                            url = url,
-                            title = title,
-                            page = page + 1
-                        ),
-                    title = 'Fler...'
-                )
+    try:
+        next_page_url = BASE_URL + element.xpath("//*[@id='next-page']/@href")[0]
+        
+        oc.add(
+            NextPageObject(
+                key = Callback(Episodes, url=next_page_url, title=title, thumb=thumb, type=type),
+                title = 'Fler...'
             )
-            break
+        )
+    except:
+        pass
         
     return oc
 
@@ -189,9 +196,11 @@ def Videos(url, title, page = 1):
 def Search(query, title):
     oc = ObjectContainer(title2 = unicode(title))
 
-    result = Videos(
-        url = BASE_URL + '/Produkter?q=' + String.Quote(query),
-        title = unicode('Resultat för : "') + query + '"'
+    result = Episodes(
+        url = BASE_URL + '/sok?product_type=program&view=&age=&type=&query=' + String.Quote(query),
+        title = unicode('Resultat för : "') + query + '"',
+        thumb = ICON,
+        type = 'products-search-result'
     )
     
     if len(result) > 0:
