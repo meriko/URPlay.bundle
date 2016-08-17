@@ -31,7 +31,7 @@ def MainMenu():
     title = unicode('Senaste')
     oc.add(
         DirectoryObject(
-            key = Callback(Episodes, title=title, url=LATEST_URL, thumb=ICON, type='products-search-result'),
+            key = Callback(Episodes, title=title, url=LATEST_URL, thumb=ICON),
             title = title
         )
     )   
@@ -39,7 +39,7 @@ def MainMenu():
     title = unicode('Populärast just nu')
     oc.add(
         DirectoryObject(
-            key = Callback(Episodes, title=title, url=MOST_VIEWED_URL, thumb=ICON, type='products-search-result'),
+            key = Callback(Episodes, title=title, url=MOST_VIEWED_URL, thumb=ICON),
             title = title
         )
     )
@@ -47,7 +47,7 @@ def MainMenu():
     title = unicode('Sista chansen')
     oc.add(
         DirectoryObject(
-            key = Callback(Episodes, title=title, url=LAST_CHANCE_URL, thumb=ICON, type='products-search-result'),
+            key = Callback(Episodes, title=title, url=LAST_CHANCE_URL, thumb=ICON),
             title = title
         )
     )
@@ -94,7 +94,7 @@ def Categories(title):
         
         oc.add(
             DirectoryObject(
-                key = Callback(Episodes, title=title, url=url, thumb=thumb, type='products-search-result'),
+                key = Callback(Episodes, title=title, url=url, thumb=thumb),
                 title = title,
                 thumb = thumb
             )
@@ -146,16 +146,16 @@ def AllProgramsByLetter(title):
 
 ####################################################################################################
 @route(PREFIX + '/Episodes')
-def Episodes(url, title, thumb, type='episodes'):
+def Episodes(url, title, thumb, type='program'):
 
     show = unicode(title)
     art = thumb
     oc = ObjectContainer(title2 = show)
     element = HTML.ElementFromURL(url)
     
-    for episode in element.xpath("//*[@id='%s']//li" % type):
-        episode_url = BASE_URL + episode.xpath(".//a/@href")[0]
-        episode_title = unicode(episode.xpath(".//h3/text()")[0])
+    for episode in element.xpath("//*[@class='search-result']//article[@class='%s']//a" % type):
+        episode_url = BASE_URL + episode.xpath("./@href")[0]
+        episode_title = unicode(episode.xpath("./@aria-label")[0])
         
         try:
             episode_thumb = episode.xpath(".//img/@data-src")[0]
