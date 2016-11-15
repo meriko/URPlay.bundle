@@ -112,8 +112,11 @@ def AllProgramsByLetter(title):
     
     element = HTML.ElementFromURL(BASE_URL + '/sok?product_type=series&rows=999&start=0')
     
-    for program in element.xpath("//*[@class='series']/a"):
-        url = BASE_URL + program.xpath("./@href")[0]
+    for program in element.xpath("//*[@class='search-result']//*[@class='series']"):
+        if not program.xpath(".//*[@class='video']"):
+            continue
+        
+        url = BASE_URL + program.xpath(".//a/@href")[0]
         title = unicode(program.xpath(".//h3/text()")[0])
         
         try:
@@ -133,7 +136,7 @@ def AllProgramsByLetter(title):
         
         oc.add(
             TVShowObject(
-                key = Callback(Episodes, url = url, title = title, thumb = thumb),
+                key = Callback(Episodes, url = url, title = title, thumb = thumb, xpath = "//*[@id='episodes']//article"),
                 rating_key = url,
                 title = title,
                 thumb = thumb,
@@ -146,19 +149,23 @@ def AllProgramsByLetter(title):
 
 ####################################################################################################
 @route(PREFIX + '/Episodes')
-def Episodes(url, title, thumb, type='program'):
+def Episodes(url, title, thumb, type='program', xpath=''):
+
+    if not xpath:
+        xpath = "//*[@class='search-result']//article[@class='%s']" % type
 
     show = unicode(title)
     art = thumb
     oc = ObjectContainer(title2 = show)
     element = HTML.ElementFromURL(url)
     
-    for episode in element.xpath("//*[@class='search-result']//article[@class='%s']//a" % type):
-        episode_url = BASE_URL + episode.xpath("./@href")[0]
-        episode_title = unicode(episode.xpath("./@aria-label")[0])
+    for episode in element.xpath(xpath):
+        episode_url = BASE_URL + episode.xpath(".//a/@href")[0]
+        episode_title = unicode(episode.xpath(".//a/text()")[0])
         
         try:
             episode_thumb = episode.xpath(".//img/@data-src")[0]
+            Log(episode_thumb)
         except:
             episode_thumb = None
         
@@ -182,7 +189,7 @@ def Episodes(url, title, thumb, type='program'):
         
         oc.add(
             NextPageObject(
-                key = Callback(Episodes, url=next_page_url, title=title, thumb=thumb, type=type),
+                key = Callback(Episodes, url=next_page_url, title=title, thumb=thumb, type=type, xpath=xpath),
                 title = 'Fler...'
             )
         )
