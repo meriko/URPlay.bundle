@@ -112,12 +112,12 @@ def AllProgramsByLetter(title):
     
     element = HTML.ElementFromURL(BASE_URL + '/sok?product_type=series&rows=999&start=0')
     
-    for program in element.xpath("//*[@class='search-result']//*[@class='series']"):
-        if not program.xpath(".//*[@class='video']"):
-            continue
+    for program in element.xpath("//*[@class='search-result']//article"):
+        #if not program.xpath(".//*[@class='video']"):
+        #    continue
         
         url = BASE_URL + program.xpath(".//a/@href")[0]
-        title = unicode(program.xpath(".//h3/text()")[0])
+        title = unicode(program.xpath(".//a/text()")[0])
         
         try:
             thumb = program.xpath(".//img/@data-src")[0]
@@ -136,7 +136,7 @@ def AllProgramsByLetter(title):
         
         oc.add(
             TVShowObject(
-                key = Callback(Episodes, url = url, title = title, thumb = thumb, xpath = "//*[@id='episodes']//article"),
+                key = Callback(Episodes, url = url, title = title, thumb = thumb, xpath = "//*[@class='product-list-grid']//article"),
                 rating_key = url,
                 title = title,
                 thumb = thumb,
@@ -145,6 +145,8 @@ def AllProgramsByLetter(title):
             )
         )
     
+    oc.objects.sort(key=lambda obj: obj.title)
+    
     return oc
 
 ####################################################################################################
@@ -152,7 +154,7 @@ def AllProgramsByLetter(title):
 def Episodes(url, title, thumb, type='program', xpath=''):
 
     if not xpath:
-        xpath = "//*[@class='search-result']//article[@class='%s']" % type
+        xpath = "//*[contains(@class,'result')]//article"
 
     show = unicode(title)
     art = thumb
