@@ -162,7 +162,11 @@ def Episodes(url, title, thumb, type='program', xpath=''):
     element = HTML.ElementFromURL(url)
     
     for episode in element.xpath(xpath):
-        episode_url = BASE_URL + episode.xpath(".//a/@href")[0]
+        try:
+            episode_url = BASE_URL + episode.xpath(".//a/@href")[0]
+        except:
+            continue
+
         episode_title = unicode(episode.xpath(".//a/text()")[0])
         
         try:
